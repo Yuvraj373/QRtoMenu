@@ -250,7 +250,7 @@ export default function QRPoster({ settings, url }) {
           🖨️ Print
         </button>
         <button type="button" onClick={downloadPlain} className="h-10 rounded-xl bg-stone-100 text-stone-700 font-bold text-xs hover:bg-stone-200 transition">
-          Sirf QR (PNG)
+          QR only (PNG)
         </button>
       </div>
     </div>
