@@ -1,0 +1,12 @@
+{
+  "name": "qrmenu",
+  "private": true,
+  "description": "QR code restaurant menu — Express API serving a React frontend",
+  "scripts": {
+    "build": "npm ci --prefix backend --omit=dev && npm ci --prefix frontend --include=dev && npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,23 @@
+# Render Blueprint: one web service runs the API and serves the built menu site.
+services:
+  - type: web
+    name: qrmenu
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: VITE_ADMIN_LOGIN_PATH
+        sync: false
