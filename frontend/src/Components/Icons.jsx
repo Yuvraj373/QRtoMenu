@@ -94,3 +94,9 @@ export function GiftIcon({ className }) {
 export function ReceiptIcon({ className }) {
   return <Svg className={className}><><path d="M4 2v20l3-2 2 2 3-2 3 2 2-2 3 2V2l-3 2-2-2-3 2-3-2-2 2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></></Svg>;
 }
+export function ChatIcon({ className }) {
+  return <Svg className={className}><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></Svg>;
+}
+export function UsersIcon({ className }) {
+  return <Svg className={className}><><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></></Svg>;
+}

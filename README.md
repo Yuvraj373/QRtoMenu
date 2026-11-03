@@ -41,10 +41,11 @@ The dev server listens on your LAN too, so phones on the same Wi-Fi can open the
 
 | Route       | Who      | What |
 |-------------|----------|------|
-| `/`         | Customer | Menu, cart, checkout and demo payment. `/?table=5` pre-fills the table number |
-| `/order/:trackingId` | Customer | Live order status; asks for a rating + Google review after payment |
+| `/`         | Customer | Menu, cart, checkout (name + mobile number) and demo payment; customer reviews; orders are collected at the counter |
+| `/order/:trackingId` | Customer | Live order status with the kitchen's "ready in N min" countdown; asks for a rating (stars, tags, comment — all on the page) after payment; rings the phone when the order is ready |
 | `/login`*   | Admin    | Password login (`ADMIN_PASSWORD`) |
-| `/orders`   | Admin    | Live orders board (new → preparing → ready → served) with sound alert |
+| `/orders`   | Admin    | Live orders board (new → preparing → ready for pickup → picked up): set the prep time when accepting, "+5/+10 min", call/WhatsApp, repeat-customer history, sound + device alerts |
+| `/customers` | Admin   | Everyone who has ordered (one row per mobile number) with all their past orders, spend and ratings |
 | `/admin`    | Admin    | Add / edit / delete items, mark sold out |
 | `/settings` | Admin    | Restaurant details, theme colour, menu link, printable QR posters |
 
@@ -93,12 +94,32 @@ Security in place: admin APIs need a signed JWT (checked on every request and wh
 | PUT    | `/api/settings`    | ✓    |
 | POST   | `/api/orders`      | –    (demo payment; prices are taken from the database) |
 | GET    | `/api/orders/track/:trackingId` (+ `/stream`) | – |
-| POST   | `/api/orders/track/:trackingId/review` | – |
+| POST   | `/api/orders/track/:trackingId/review` | – (rating, tags, comment) |
+| GET    | `/api/orders/reviews` | – (average rating + recent comments for the menu) |
 | GET    | `/api/orders?since=` | ✓  |
 | GET    | `/api/orders/stream` | ✓  (Server-Sent Events, live new/updated orders) |
-| PATCH  | `/api/orders/:id/status` | ✓ |
+| PATCH  | `/api/orders/:id/status` | ✓  (`preparing` takes `prepMinutes`; `ready` starts ringing the customer's phone) |
+| POST   | `/api/orders/:id/delay` | ✓  (`{ minutes }` added to the promised time; customer is notified) |
+| POST   | `/api/orders/:id/ring` | ✓  (ring the customer again) |
+| POST   | `/api/orders/track/:trackingId/pickup-ack` | – (customer tapped OK; stops ringing) |
+| GET    | `/api/orders/push-key` | – (VAPID public key) |
+| POST   | `/api/orders/track/:trackingId/push` | – (save the phone's push subscription) |
+| POST   | `/api/orders/track/:trackingId/push-test` | – (send a test notification to the customer's phone) |
+| POST/DELETE | `/api/orders/admin-push` | ✓  (turn "new order" alerts on/off for an admin device) |
+| POST   | `/api/orders/admin-push/test` | ✓  |
+| GET    | `/api/customers?q=` | ✓  (search by name or mobile) |
+| GET    | `/api/customers/:id` | ✓  (customer + all their orders) |
 
 ### Ordering notes
 - **Payments are demo only.** Any UPI id / 10-digit number or 12–19 digit card number is accepted; only a masked value is stored.
+- **Customers are identified by mobile number** (required at checkout, 10-digit Indian number). Every order from the same number is linked to one customer, so the admin sees "2nd order", other open orders from the same person, and the full history. Orders placed before this existed are linked automatically on server start (`backend/lib/linkCustomers.js`).
+- **Reviews stay on the site**: stars, quick tags and an optional comment are saved with the order and shown on the menu ("What our customers say"). The Google review link in Settings is only used for the printable poster.
+- **Prep time**: the kitchen picks 10–45 min when accepting; the customer sees a live countdown and gets a notification when it is accepted or pushed back.
 - **Free Cold Coffee** is added automatically when the item total is ₹600 or more (`backend/lib/offer.js` and `frontend/src/lib/offer.js`).
+- **Notifications** (service worker `frontend/public/sw.js`, sending in `backend/lib/notify.js`):
+  - Customer: order accepted (with time), running late, ready, cancelled — even with the page or browser closed. Works on Android and desktop browsers; on iPhone only after *Add to Home Screen* (iOS 16.4+). Customers are asked to allow notifications right after paying and can send themselves a test alert.
+  - **Pickup alert:** "ready" rings until the customer taps OK — in-page ring + vibration + popup when the page is open, and a push notification re-sent 10 times over ~6 minutes (`backend/lib/pickupRinger.js`) with an "OK, I'm coming" button. The admin card shows whether the customer's phone can get alerts; if not, use the call / WhatsApp buttons.
+  - Admin: "Get alerts on this device" on the Orders page sends a notification for every new order, even when the admin panel is closed.
+  - Without notifications the order page keeps the screen awake so its in-page ring can be heard.
+  - VAPID keys are generated once and stored in MongoDB (`config` collection). To manage them yourself set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and optionally `VAPID_SUBJECT` (`mailto:you@example.com`). Changing the keys invalidates existing subscriptions.
 - **Live updates** use Server-Sent Events from a single server process. If you ever run more than one instance, move the event bus (`backend/lib/events.js`) to Redis or MongoDB change streams.

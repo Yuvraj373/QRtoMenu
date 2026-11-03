@@ -5,6 +5,7 @@ import Admin from './pages/Admin';
 import Menu from './pages/Menu';
 import Settings from './pages/Settings';
 import Orders from './pages/Orders';
+import Customers from './pages/Customers';
 import OrderStatus from './pages/OrderStatus';
 import { SettingsProvider } from './lib/SettingsContext';
 import { CartProvider } from './lib/cart';
@@ -56,6 +57,7 @@ export default function App() {
             {/* One live-orders connection shared by every admin page */}
             <Route element={<Protected><OrdersProvider><Outlet /></OrdersProvider></Protected>}>
               <Route path="/orders" element={<Orders />} />
+              <Route path="/customers" element={<Customers />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

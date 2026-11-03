@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import api, { errorMessage } from '../lib/api';
+import { unlockSound } from '../lib/sound';
+import { askPermission, pushSupported } from '../lib/push';
 import { formatPrice } from '../lib/menu';
-import { CardIcon, CheckIcon, LockIcon, MobileIcon } from './Icons';
+import { BellIcon, CardIcon, CheckIcon, LockIcon, MobileIcon } from './Icons';
 
 const inputCls =
   'w-full h-12 px-4 bg-stone-50 border border-stone-200 rounded-xl outline-none transition focus:bg-white focus:border-brand focus:ring-4 focus:ring-brand/15 text-[15px] font-semibold tracking-wide text-stone-900 placeholder:text-stone-400 placeholder:font-medium placeholder:tracking-normal';
@@ -36,6 +38,8 @@ export default function PaymentPanel({ amount, details, lines, onBusy, onDone })
     e.preventDefault();
     const problem = validate();
     if (problem) return setError(problem);
+    // This tap lets the order page ring the phone later, when the order is ready
+    unlockSound();
     setError('');
     setPhase('processing');
     onBusy(true);
@@ -43,7 +47,6 @@ export default function PaymentPanel({ amount, details, lines, onBusy, onDone })
       const [res] = await Promise.all([
         api.post('/orders', {
           customerName: details.name,
-          table: details.table,
           phone: details.phone,
           note: details.note,
           items: lines.map((l) => ({ id: l.id, size: l.size, qty: l.qty })),
@@ -96,7 +99,7 @@ export default function PaymentPanel({ amount, details, lines, onBusy, onDone })
           {[
             ['Paid via', `${order.payment.method === 'upi' ? 'UPI' : 'Card'} · ${order.payment.masked}`],
             ['Transaction ID', order.payment.ref],
-            ['Table', order.table],
+            ['Pickup', 'At the counter'],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 px-4 py-2.5">
               <dt className="text-stone-500">{k}</dt>
@@ -108,7 +111,26 @@ export default function PaymentPanel({ amount, details, lines, onBusy, onDone })
           <p className="mx-5 mt-3 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm font-bold text-amber-800">🎁 A FREE Cold Coffee is included with your order!</p>
         )}
         <div className="mt-auto p-4 pb-safe">
-          <button type="button" onClick={() => { onBusy(false); onDone(order); }} className="mt-4 w-full h-14 rounded-2xl bg-stone-900 text-white font-extrabold text-base hover:bg-stone-800 transition">
+          {pushSupported() && Notification.permission === 'default' && (
+            <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-3.5 text-left">
+              <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-blue-600 text-white animate-wiggle">
+                <BellIcon className="w-5 h-5" />
+              </span>
+              <p className="text-xs font-semibold text-blue-900 leading-relaxed">
+                <span className="block text-sm font-extrabold">Next: tap “Allow” 🔔</span>
+                The kitchen will send you the ready time and ring your phone when your food is ready — even if you close this page.
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={async () => {
+              await askPermission();
+              onBusy(false);
+              onDone(order);
+            }}
+            className="mt-3 w-full h-14 rounded-2xl bg-stone-900 text-white font-extrabold text-base hover:bg-stone-800 transition"
+          >
             Continue
           </button>
         </div>

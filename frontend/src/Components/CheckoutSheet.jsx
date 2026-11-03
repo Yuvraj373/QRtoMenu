@@ -19,6 +19,12 @@ const readCustomer = () => {
   }
 };
 
+// Same rule as the server: 10-digit Indian mobile, "+91"/"0" prefix allowed
+const normalizePhone = (v) => {
+  const digits = String(v || '').replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '');
+  return /^[6-9]\d{9}$/.test(digits) ? digits : null;
+};
+
 const inputCls =
   'w-full h-12 px-4 bg-stone-50 border border-stone-200 rounded-xl outline-none transition focus:bg-white focus:border-brand focus:ring-4 focus:ring-brand/15 text-sm font-medium text-stone-900 placeholder:text-stone-400';
 
@@ -30,10 +36,11 @@ function Thumb({ src, category }) {
   );
 }
 
-export default function CheckoutSheet({ open, onClose, onPlaced, giftItem, defaultTable }) {
+export default function CheckoutSheet({ open, onClose, onPlaced, giftItem }) {
   const cart = useCart();
   const [step, setStep] = useState('cart');
-  const [details, setDetails] = useState(() => ({ name: '', phone: '', note: '', ...readCustomer(), table: defaultTable || readCustomer().table || '' }));
+  const [saved] = useState(readCustomer);
+  const [details, setDetails] = useState(() => ({ name: '', phone: '', note: '', ...saved }));
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
 
@@ -48,10 +55,12 @@ export default function CheckoutSheet({ open, onClose, onPlaced, giftItem, defau
   const toPayment = (e) => {
     e.preventDefault();
     if (!details.name.trim()) return setError('Please enter your name');
-    if (!details.table.trim()) return setError('Please enter your table number');
+    const phone = normalizePhone(details.phone);
+    if (!phone) return setError('Please enter your 10-digit mobile number — we use it to ring you and to keep all your orders together');
     setError('');
+    setDetails((d) => ({ ...d, phone }));
     try {
-      localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name: details.name, phone: details.phone, table: details.table }));
+      localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name: details.name.trim(), phone }));
     } catch {
       // not critical
     }
@@ -88,7 +97,7 @@ export default function CheckoutSheet({ open, onClose, onPlaced, giftItem, defau
         )}
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-extrabold text-stone-900">{step === 'cart' ? 'Your order' : 'Payment'}</h2>
-          <p className="text-xs text-stone-500">{step === 'cart' ? `${cart.count} ${cart.count === 1 ? 'item' : 'items'} · Table ${details.table || '—'}` : `Order for ${details.name} · Table ${details.table}`}</p>
+          <p className="text-xs text-stone-500">{step === 'cart' ? `${cart.count} ${cart.count === 1 ? 'item' : 'items'} · Pick up at the counter` : `Order for ${details.name}`}</p>
         </div>
         {!paying && (
           <button type="button" onClick={close} aria-label="Close" className="grid place-items-center w-10 h-10 rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200">
@@ -139,12 +148,16 @@ export default function CheckoutSheet({ open, onClose, onPlaced, giftItem, defau
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Your details</p>
-              <div className="grid grid-cols-[1fr_110px] gap-3">
-                <input value={details.name} onChange={set('name')} placeholder="Your name *" autoComplete="given-name" maxLength={60} className={inputCls} />
-                <input value={details.table} onChange={set('table')} placeholder="Table *" inputMode="numeric" maxLength={20} className={`${inputCls} text-center font-bold`} />
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Your details</p>
+                {saved.name && <p className="text-xs font-bold text-brand">Welcome back, {saved.name.split(' ')[0]}! 👋</p>}
               </div>
-              <input value={details.phone} onChange={set('phone')} placeholder="Mobile number (optional)" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} className={inputCls} />
+              <input value={details.name} onChange={set('name')} placeholder="Your name *" autoComplete="given-name" maxLength={60} className={inputCls} />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-500 pointer-events-none">+91</span>
+                <input value={details.phone} onChange={set('phone')} placeholder="Mobile number *" type="tel" inputMode="tel" autoComplete="tel-national" maxLength={16} className={`${inputCls} pl-13`} />
+              </div>
+              <p className="-mt-1 text-[11px] text-stone-400">All your orders stay linked to this number. We only use it to reach you about your order.</p>
               <textarea value={details.note} onChange={set('note')} placeholder="Cooking note — e.g. less spicy, extra cheese (optional)" rows={2} maxLength={300} className={`${inputCls} h-auto py-3 resize-none`} />
             </div>
 

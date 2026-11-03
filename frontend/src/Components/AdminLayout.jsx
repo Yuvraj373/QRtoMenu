@@ -3,10 +3,11 @@ import { auth } from '../lib/api';
 import { LOGIN_PATH } from '../lib/config';
 import { useSettings } from '../lib/SettingsContext';
 import { useOrders } from '../lib/orders';
-import { ExternalIcon, ListIcon, LogoutIcon, ReceiptIcon, SettingsIcon } from './Icons';
+import { ExternalIcon, ListIcon, LogoutIcon, ReceiptIcon, SettingsIcon, UsersIcon } from './Icons';
 
 const tabs = [
   { to: '/orders', label: 'Orders', Icon: ReceiptIcon },
+  { to: '/customers', label: 'Customers', Icon: UsersIcon },
   { to: '/admin', label: 'Menu Items', Icon: ListIcon },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
 ];
@@ -78,7 +79,7 @@ export default function AdminLayout({ title, subtitle, actions, children }) {
       </main>
 
       {/* Mobile bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-stone-200 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-stone-200 grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
         {tabs.map(({ to, label, Icon }) => (
           <NavLink
             key={to}

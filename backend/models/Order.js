@@ -17,8 +17,10 @@ const orderSchema = new mongoose.Schema({
   // Unguessable id the customer uses to follow their order; never the Mongo _id
   trackingId: { type: String, required: true, unique: true },
   customerName: { type: String, required: true, trim: true, maxlength: 60 },
-  table: { type: String, required: true, trim: true, maxlength: 20 },
   phone: { type: String, default: '', trim: true, maxlength: 20 },
+  // Same phone number = same customer; visit is "this is their Nth order"
+  customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', index: true },
+  visit: { type: Number, default: 1 },
   note: { type: String, default: '', trim: true, maxlength: 300 },
   items: { type: [lineSchema], validate: [(v) => v.length > 0, 'Order has no items'] },
   subtotal: { type: Number, required: true },
@@ -33,8 +35,25 @@ const orderSchema = new mongoose.Schema({
     ref: { type: String, default: '' },
     paidAt: { type: Date, default: Date.now }
   },
+  // The kitchen's promised time: set when the order is accepted, can be pushed back later
+  prepMinutes: Number,
+  etaAt: Date,
+  // Set when the kitchen marks the order ready (or rings again); the customer's phone
+  // keeps ringing until pickupAck is newer than readyAt
+  readyAt: Date,
+  pickupAck: Date,
+  // Web Push subscriptions of the customer's phone(s); never sent to any client
+  pushSubs: {
+    type: [{ _id: false, endpoint: String, expirationTime: Number, keys: { p256dh: String, auth: String } }],
+    default: [],
+    select: false
+  },
+  // true while at least one of the customer's phones can receive push alerts (shown to the admin)
+  alertsOn: { type: Boolean, default: false },
   review: {
     rating: { type: Number, min: 1, max: 5 },
+    tags: [{ type: String, maxlength: 30 }],
+    comment: { type: String, trim: true, maxlength: 500 },
     at: Date
   }
 }, { timestamps: true });

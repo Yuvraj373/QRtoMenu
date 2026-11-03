@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const seedIfEmpty = require('./seed');
+const linkCustomers = require('./lib/linkCustomers');
 
 for (const key of ['MONGO_URI', 'JWT_SECRET', 'ADMIN_PASSWORD']) {
   if (!process.env[key]) {
@@ -42,6 +43,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/customers', require('./routes/customers'));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // In production the built frontend is served from here, so the QR code only needs one URL
@@ -66,6 +68,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ MongoDB Connected Successfully!');
     await seedIfEmpty();
+    await linkCustomers();
   })
   .catch(err => console.log('❌ DB Error:', err.message));
 

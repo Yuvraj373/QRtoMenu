@@ -129,9 +129,6 @@ export default function Settings() {
               <input type="url" inputMode="url" value={form.menuUrl ?? ''} onChange={set('menuUrl')} className={inputCls} placeholder={PUBLIC_URL} />
             </Field>
             <p className="mt-2 text-xs text-stone-500">If left empty, the current address is used: <span className="font-semibold text-stone-700 break-all">{PUBLIC_URL}</span></p>
-            <p className="mt-2 text-xs text-stone-500">
-              Tip: add <span className="font-mono font-semibold text-stone-700">?table=5</span> to the end of the link to print a QR for each table — the table number is then filled in automatically when customers order.
-            </p>
           </Card>
 
           <Card title="Google review" description="After paying, customers are asked to rate you and open this link to leave a Google review">
@@ -181,7 +178,7 @@ export default function Settings() {
               </p>
             )}
             <QRPoster settings={form} url={menuUrl} />
-            <p className="mt-3 text-center text-[11px] text-stone-400">Print it and place it on your tables — customers scan it to view the menu.</p>
+            <p className="mt-3 text-center text-[11px] text-stone-400">Print it and place it at the counter or on tables — customers scan it to view the menu.</p>
           </section>
 
           {form.googleReviewUrl && (

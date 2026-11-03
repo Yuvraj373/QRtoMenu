@@ -21,4 +21,10 @@ function openStream(req, res) {
   return (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-module.exports = { bus, openStream };
+// Live update for the admin board and the customer's tracking page (push subscriptions stay private)
+function emitOrder(order) {
+  const { pushSubs, ...data } = order.toObject ? order.toObject() : order;
+  bus.emit('order', data);
+}
+
+module.exports = { bus, openStream, emitOrder };

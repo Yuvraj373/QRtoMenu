@@ -31,3 +31,25 @@ export function playChime() {
     osc.stop(start + 0.5);
   });
 }
+
+// Phone-style "trrring trrring" for the customer when their order is ready
+export function playRing() {
+  const ac = context();
+  if (!ac) return;
+  const t = ac.currentTime;
+  for (let burst = 0; burst < 2; burst++) {
+    for (let i = 0; i < 10; i++) {
+      const start = t + burst * 0.9 + i * 0.06;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'square';
+      osc.frequency.value = i % 2 ? 1400 : 1750;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.18, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.055);
+      osc.connect(gain).connect(ac.destination);
+      osc.start(start);
+      osc.stop(start + 0.06);
+    }
+  }
+}

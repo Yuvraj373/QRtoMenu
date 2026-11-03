@@ -64,7 +64,7 @@ export function OrdersProvider({ children }) {
             known.current.add(order._id);
             playChime();
             navigator.vibrate?.([200, 100, 200]);
-            toast(`New order #${order.number} · Table ${order.table}`);
+            toast(`New order #${order.number} · ${order.customerName}`);
           }
         },
       }),
@@ -79,11 +79,12 @@ export function OrdersProvider({ children }) {
     document.title = newCount ? `(${newCount}) ${base}` : base;
   }, [newCount]);
 
+  // extra: { prepMinutes } when accepting an order
   const updateStatus = useCallback(
-    async (order, status) => {
+    async (order, status, extra = {}) => {
       setOrders((list) => upsert(list, { ...order, status }));
       try {
-        const res = await api.patch(`/orders/${order._id}/status`, { status });
+        const res = await api.patch(`/orders/${order._id}/status`, { status, ...extra });
         setOrders((list) => upsert(list, res.data));
       } catch (err) {
         setOrders((list) => upsert(list, order));
@@ -93,7 +94,37 @@ export function OrdersProvider({ children }) {
     [toast]
   );
 
-  const value = useMemo(() => ({ orders, loaded, connection, newCount, updateStatus, reload: load }), [orders, loaded, connection, newCount, updateStatus, load]);
+  const ringAgain = useCallback(
+    async (order) => {
+      try {
+        const res = await api.post(`/orders/${order._id}/ring`);
+        setOrders((list) => upsert(list, res.data));
+        toast(`Ringing ${order.customerName}'s phone again`);
+      } catch (err) {
+        toast(errorMessage(err), 'error');
+      }
+    },
+    [toast]
+  );
+
+  // Kitchen is running late: add minutes to the time the customer sees
+  const delay = useCallback(
+    async (order, minutes) => {
+      try {
+        const res = await api.post(`/orders/${order._id}/delay`, { minutes });
+        setOrders((list) => upsert(list, res.data));
+        toast(`#${order.number}: customer told it needs ${minutes} more min`);
+      } catch (err) {
+        toast(errorMessage(err), 'error');
+      }
+    },
+    [toast]
+  );
+
+  const value = useMemo(
+    () => ({ orders, loaded, connection, newCount, updateStatus, ringAgain, delay, reload: load }),
+    [orders, loaded, connection, newCount, updateStatus, ringAgain, delay, load]
+  );
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;
 }
 

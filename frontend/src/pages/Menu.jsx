@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import { Link, useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../lib/api';
 import { useSettings } from '../lib/SettingsContext';
 import { useCart } from '../lib/cart';
@@ -13,13 +12,13 @@ import VegMark from '../Components/VegMark';
 import CartBar from '../Components/CartBar';
 import SizeSheet from '../Components/SizeSheet';
 import CheckoutSheet from '../Components/CheckoutSheet';
-import { ArrowRightIcon, ExternalIcon, PhoneIcon, PinIcon, ReceiptIcon, RefreshIcon, StarIcon } from '../Components/Icons';
+import { ArrowRightIcon, PhoneIcon, PinIcon, ReceiptIcon, RefreshIcon, StarIcon } from '../Components/Icons';
+import { Stars } from '../Components/ReviewGate';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1600&q=75';
 const GIFT_IMAGE = 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=400&fit=crop&q=80';
-const DEFAULT_REVIEW_URL = 'https://share.google/oZNCrAVVJFrvIMey7';
 
-function Hero({ settings, table }) {
+function Hero({ settings, reviews }) {
   const meta = [settings.since, settings.tagline].filter(Boolean).join(' • ');
   return (
     <header className="relative overflow-hidden bg-stone-900 text-white">
@@ -29,19 +28,19 @@ function Hero({ settings, table }) {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
         <div className="flex flex-wrap items-center gap-2">
           {meta && <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/80">{meta}</p>}
-          {table && <span className="rounded-full bg-white text-stone-900 px-2.5 py-1 text-[11px] font-extrabold">Table {table}</span>}
         </div>
         <h1 className="mt-3 text-[2.75rem] sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[0.95] drop-shadow-lg">{settings.restaurantName}</h1>
-        <p className="mt-3 max-w-md text-sm sm:text-base text-white/80">Order from your table, pay on your phone — we&apos;ll bring it right to you.</p>
+        <p className="mt-3 max-w-md text-sm sm:text-base text-white/80">Order and pay from your phone — we&apos;ll ring you when it&apos;s ready to pick up.</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <a
-            href={settings.googleReviewUrl || DEFAULT_REVIEW_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-white text-stone-900 px-3.5 py-2 text-xs sm:text-sm font-bold hover:bg-white/90 transition"
-          >
-            <StarIcon className="w-4 h-4 text-amber-400" /> Rate us on Google
-          </a>
+          {reviews?.count > 0 && (
+            <button
+              type="button"
+              onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white text-stone-900 px-3.5 py-2 text-xs sm:text-sm font-bold hover:bg-white/90 transition"
+            >
+              <StarIcon className="w-4 h-4 text-amber-400" /> {reviews.avg} · {reviews.count} {reviews.count === 1 ? 'review' : 'reviews'}
+            </button>
+          )}
           {settings.address && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3.5 py-2 text-xs sm:text-sm font-semibold">
               <PinIcon className="w-4 h-4" /> {settings.address}
@@ -72,47 +71,69 @@ function OfferBanner({ giftItem }) {
   );
 }
 
-function ActiveOrder() {
-  const [order, setOrder] = useState(null);
+// Every order from this phone that is still in progress (a customer can have more than one)
+function ActiveOrders() {
+  const [orders, setOrders] = useState([]);
   useEffect(() => {
-    const [latest] = getMyOrders();
-    if (!latest) return;
-    api
-      .get(`/orders/track/${latest.trackingId}`)
-      .then((res) => ['new', 'preparing', 'ready'].includes(res.data.status) && setOrder(res.data))
-      .catch(() => {});
+    Promise.all(getMyOrders().map((o) => api.get(`/orders/track/${o.trackingId}`).then((res) => res.data).catch(() => null))).then((list) =>
+      setOrders(list.filter((o) => o && ['new', 'preparing', 'ready'].includes(o.status)))
+    );
   }, []);
-  if (!order) return null;
-  const label = { new: 'Order placed', preparing: 'Being prepared 👨‍🍳', ready: 'Ready — on its way 🛎️' }[order.status];
-  return (
-    <Link to={`/order/${order.trackingId}`} className="flex items-center gap-3 rounded-2xl bg-stone-900 text-white p-3.5 pr-4 hover:bg-stone-800 transition animate-fade-up">
-      <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand"><ReceiptIcon className="w-5 h-5" /></span>
+  const label = (o) =>
+    ({
+      new: 'Order placed — waiting for the kitchen',
+      preparing: o.etaAt ? `Being prepared 👨‍🍳 · ready by ${new Date(o.etaAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : 'Being prepared 👨‍🍳',
+      ready: 'Ready — pick up at the counter 🛎️',
+    })[o.status];
+  return orders.map((order) => (
+    <Link key={order.trackingId} to={`/order/${order.trackingId}`} className="flex items-center gap-3 rounded-2xl bg-stone-900 text-white p-3.5 pr-4 hover:bg-stone-800 transition animate-fade-up">
+      <span className={`grid place-items-center w-11 h-11 rounded-xl ${order.status === 'ready' ? 'bg-green-500 animate-wiggle' : 'bg-brand'}`}><ReceiptIcon className="w-5 h-5" /></span>
       <span className="flex-1 min-w-0">
         <span className="block text-xs text-white/60 font-semibold">Your order #{order.number}</span>
-        <span className="block font-bold">{label}</span>
+        <span className="block font-bold truncate">{label(order)}</span>
       </span>
       <span className="inline-flex items-center gap-1 text-sm font-bold">Track <ArrowRightIcon className="w-4 h-4" /></span>
     </Link>
-  );
+  ));
 }
 
-function ReviewCard({ url }) {
+// What customers said after ordering here (collected on the order page, no outside site)
+function Reviews({ reviews }) {
+  if (!reviews?.count) return null;
   return (
-    <section className="mt-12 rounded-3xl bg-white border border-stone-200 p-5 sm:p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-      <div className="flex-1">
-        <div className="flex justify-center sm:justify-start gap-1 text-amber-400">
-          {[1, 2, 3, 4, 5].map((n) => <StarIcon key={n} className="w-6 h-6" />)}
+    <section id="reviews" className="mt-12 scroll-mt-28">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-tight">What our customers say</h2>
+          <p className="mt-1 text-sm text-stone-500">Reviews from people who ordered right here</p>
         </div>
-        <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Loved your food?</h2>
-        <p className="mt-1 text-sm text-stone-500">Tell others on Google — it really helps a small restaurant like ours.</p>
-        <a href={url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 h-12 px-5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition">
-          Write a Google review <ExternalIcon className="w-4 h-4" />
-        </a>
+        <div className="flex items-center gap-3 rounded-2xl bg-white border border-stone-200 px-4 py-2.5">
+          <span className="text-3xl font-extrabold tabular-nums">{reviews.avg}</span>
+          <span>
+            <Stars value={Math.round(reviews.avg)} size="w-4 h-4" />
+            <span className="block text-[11px] font-bold text-stone-500">{reviews.count} {reviews.count === 1 ? 'review' : 'reviews'}</span>
+          </span>
+        </div>
       </div>
-      <div className="shrink-0 rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200 text-center">
-        <QRCodeSVG value={url} size={120} level="M" marginSize={0} />
-        <p className="mt-2 text-[11px] font-bold text-stone-500">Scan to review</p>
-      </div>
+      {reviews.recent.length > 0 && (
+        <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:overflow-visible">
+          {reviews.recent.map((r, i) => (
+            <figure key={i} className="snap-start shrink-0 w-[78%] sm:w-auto rounded-3xl bg-white border border-stone-200 p-5">
+              <div className="flex items-center justify-between">
+                <Stars value={r.rating} size="w-4 h-4" />
+                <span className="text-[11px] font-semibold text-stone-400">{new Date(r.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+              </div>
+              <blockquote className="mt-3 text-sm text-stone-700 leading-relaxed line-clamp-4">“{r.comment}”</blockquote>
+              {r.tags?.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {r.tags.slice(0, 3).map((t) => <span key={t} className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-600">{t}</span>)}
+                </div>
+              )}
+              <figcaption className="mt-3 text-xs font-extrabold text-stone-900">— {r.name}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -137,8 +158,6 @@ export default function Menu() {
   const cart = useCart();
   const { syncWith } = cart;
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const table = params.get('table')?.slice(0, 20) || '';
   const [sizeItem, setSizeItem] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -147,6 +166,7 @@ export default function Menu() {
   const [search, setSearch] = useState('');
   const [vegOnly, setVegOnly] = useState(false);
   const [active, setActive] = useState('');
+  const [reviews, setReviews] = useState(null);
   const chipBar = useRef(null);
   const lockSpy = useRef(false);
 
@@ -166,8 +186,11 @@ export default function Menu() {
 
   useEffect(load, [load]);
 
+  useEffect(() => {
+    api.get('/orders/reviews').then((res) => setReviews(res.data)).catch(() => {});
+  }, []);
+
   const giftItem = useMemo(() => items.find((i) => i.name.toLowerCase() === FREE_GIFT_NAME.toLowerCase()), [items]);
-  const reviewUrl = settings.googleReviewUrl || DEFAULT_REVIEW_URL;
 
   const placed = (order) => {
     rememberOrder(order);
@@ -220,11 +243,11 @@ export default function Menu() {
 
   return (
     <div className={`min-h-dvh bg-stone-50 ${cart.count ? 'pb-40' : ''}`}>
-      <Hero settings={settings} table={table} />
+      <Hero settings={settings} reviews={reviews} />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 -mt-12 sm:-mt-16 space-y-3">
         <OfferBanner giftItem={giftItem} />
-        <ActiveOrder />
+        <ActiveOrders />
       </div>
 
       {/* Sticky search + category bar */}
@@ -336,7 +359,7 @@ export default function Menu() {
             ))}
           </div>
 
-          {status === 'ready' && <ReviewCard url={reviewUrl} />}
+          {status === 'ready' && <Reviews reviews={reviews} />}
         </main>
       </div>
 
@@ -352,7 +375,7 @@ export default function Menu() {
 
       {!checkoutOpen && !sizeItem && <CartBar onOpen={() => setCheckoutOpen(true)} />}
       <SizeSheet item={sizeItem} onClose={() => setSizeItem(null)} />
-      <CheckoutSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)} onPlaced={placed} giftItem={giftItem} defaultTable={table} />
+      <CheckoutSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)} onPlaced={placed} giftItem={giftItem} />
     </div>
   );
 }
