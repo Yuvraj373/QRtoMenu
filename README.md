@@ -41,8 +41,10 @@ The dev server listens on your LAN too, so phones on the same Wi-Fi can open the
 
 | Route       | Who      | What |
 |-------------|----------|------|
-| `/`         | Customer | Menu with search, veg-only filter and category navigation |
+| `/`         | Customer | Menu, cart, checkout and demo payment. `/?table=5` pre-fills the table number |
+| `/order/:trackingId` | Customer | Live order status; asks for a rating + Google review after payment |
 | `/login`*   | Admin    | Password login (`ADMIN_PASSWORD`) |
+| `/orders`   | Admin    | Live orders board (new → preparing → ready → served) with sound alert |
 | `/admin`    | Admin    | Add / edit / delete items, mark sold out |
 | `/settings` | Admin    | Restaurant details, theme colour, menu link, printable QR posters |
 
@@ -89,3 +91,14 @@ Security in place: admin APIs need a signed JWT (checked on every request and wh
 | DELETE | `/api/items/:id`   | ✓    |
 | GET    | `/api/settings`    | –    |
 | PUT    | `/api/settings`    | ✓    |
+| POST   | `/api/orders`      | –    (demo payment; prices are taken from the database) |
+| GET    | `/api/orders/track/:trackingId` (+ `/stream`) | – |
+| POST   | `/api/orders/track/:trackingId/review` | – |
+| GET    | `/api/orders?since=` | ✓  |
+| GET    | `/api/orders/stream` | ✓  (Server-Sent Events, live new/updated orders) |
+| PATCH  | `/api/orders/:id/status` | ✓ |
+
+### Ordering notes
+- **Payments are demo only.** Any UPI id / 10-digit number or 12–19 digit card number is accepted; only a masked value is stored.
+- **Free Cold Coffee** is added automatically when the item total is ₹600 or more (`backend/lib/offer.js` and `frontend/src/lib/offer.js`).
+- **Live updates** use Server-Sent Events from a single server process. If you ever run more than one instance, move the event bus (`backend/lib/events.js`) to Redis or MongoDB change streams.

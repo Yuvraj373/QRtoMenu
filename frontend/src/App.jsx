@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import Menu from './pages/Menu';
 import Settings from './pages/Settings';
+import Orders from './pages/Orders';
+import OrderStatus from './pages/OrderStatus';
 import { SettingsProvider } from './lib/SettingsContext';
+import { CartProvider } from './lib/cart';
+import { OrdersProvider } from './lib/orders';
 import { ToastProvider } from './Components/Toast';
 import api, { auth } from './lib/api';
 import { LOGIN_PATH } from './lib/config';
@@ -46,10 +50,15 @@ export default function App() {
       <SettingsProvider>
         <ToastProvider>
           <Routes>
-            <Route path="/" element={<Menu />} />
+            <Route path="/" element={<CartProvider><Menu /></CartProvider>} />
+            <Route path="/order/:trackingId" element={<OrderStatus />} />
             <Route path={LOGIN_PATH} element={<Login />} />
-            <Route path="/admin" element={<Protected><Admin /></Protected>} />
-            <Route path="/settings" element={<Protected><Settings /></Protected>} />
+            {/* One live-orders connection shared by every admin page */}
+            <Route element={<Protected><OrdersProvider><Outlet /></OrdersProvider></Protected>}>
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ToastProvider>

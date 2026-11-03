@@ -8,7 +8,9 @@ const settingSchema = new mongoose.Schema({
   phone: { type: String, default: '9876543210', trim: true },
   since: { type: String, default: 'Since 2021', trim: true },
   // Public address of the live menu; printed in the QR code
-  menuUrl: { type: String, default: '', trim: true, match: [/^(https?:\/\/\S+)?$/, 'Menu link must start with http:// or https://'] }
+  menuUrl: { type: String, default: '', trim: true, match: [/^(https?:\/\/\S+)?$/, 'Menu link must start with http:// or https://'] },
+  // Google Maps "write a review" link; customers are asked to review after paying
+  googleReviewUrl: { type: String, default: 'https://share.google/oZNCrAVVJFrvIMey7', trim: true, match: [/^(https?:\/\/\S+)?$/, 'Review link must start with http:// or https://'] }
 });
 
 // Single-document collection: always read/write the same settings doc

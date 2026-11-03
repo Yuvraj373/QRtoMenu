@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import VegMark from './VegMark';
-import { StarIcon } from './Icons';
+import Stepper from './Stepper';
+import { PlusIcon, StarIcon } from './Icons';
 import { categoryIcon, formatPrice } from '../lib/menu';
 
 function Price({ label, value, strong }) {
@@ -12,14 +13,30 @@ function Price({ label, value, strong }) {
   );
 }
 
-export default function ItemCard({ item }) {
+// Swiggy-style ADD button that sits on the photo; turns into a stepper once added
+function AddControl({ hasSizes, qty, onAdd, onInc, onDec }) {
+  if (qty && !hasSizes) return <Stepper qty={qty} onInc={onInc} onDec={onDec} />;
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className={`inline-flex items-center justify-center gap-1 h-9 min-w-[92px] px-4 rounded-full text-[13px] font-extrabold shadow-lg transition active:scale-95 ${
+        qty ? 'bg-brand text-white shadow-brand/30' : 'bg-white text-brand ring-1 ring-stone-200 shadow-stone-300/50 hover:bg-brand hover:text-white'
+      }`}
+    >
+      {qty ? `${qty} added` : 'ADD'} <PlusIcon className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
+export default function ItemCard({ item, qty = 0, onAdd, onInc, onDec }) {
   const [imgFailed, setImgFailed] = useState(false);
   const unavailable = item.isAvailable === false;
   const hasLarge = item.priceL != null && item.priceL !== '';
 
   return (
     <article
-      className={`group relative flex gap-3 sm:gap-4 rounded-2xl bg-white p-3 sm:p-4 border border-stone-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:shadow-lg hover:shadow-stone-200/60 hover:-translate-y-0.5 h-full ${unavailable ? 'opacity-60' : ''}`}
+      className={`group relative flex gap-3 sm:gap-4 rounded-3xl bg-white p-3.5 sm:p-4 pb-5 sm:pb-6 border border-stone-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:shadow-lg hover:shadow-stone-200/60 hover:-translate-y-0.5 h-full ${unavailable ? 'opacity-60' : ''}`}
     >
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center gap-2 mb-1.5">
@@ -40,8 +57,8 @@ export default function ItemCard({ item }) {
         </div>
       </div>
 
-      <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 self-start">
-        <div className="w-full h-full rounded-xl overflow-hidden bg-stone-100">
+      <div className="relative w-28 sm:w-32 shrink-0 self-start pb-4">
+        <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-stone-100 shadow-sm">
           {item.image && !imgFailed ? (
             <img
               src={item.image}
@@ -57,11 +74,14 @@ export default function ItemCard({ item }) {
             </div>
           )}
         </div>
-        {unavailable && (
-          <span className="absolute inset-x-1 bottom-1 rounded-md bg-stone-900/85 text-white text-[10px] font-bold text-center py-1 uppercase tracking-wide">
-            Sold out
-          </span>
-        )}
+        <div className="absolute -bottom-0.5 inset-x-0 flex justify-center">
+          {unavailable ? (
+            <span className="h-9 px-4 grid place-items-center rounded-full bg-stone-800 text-white text-[11px] font-extrabold uppercase tracking-wide shadow-lg">Sold out</span>
+          ) : (
+            onAdd && <AddControl hasSizes={hasLarge} qty={qty} onAdd={onAdd} onInc={onInc} onDec={onDec} />
+          )}
+        </div>
+        {hasLarge && !unavailable && onAdd && <p className="absolute -bottom-5 inset-x-0 text-center text-[10px] font-semibold text-stone-400">2 sizes</p>}
       </div>
     </article>
   );
@@ -69,14 +89,14 @@ export default function ItemCard({ item }) {
 
 export function ItemCardSkeleton() {
   return (
-    <div className="flex gap-4 rounded-2xl bg-white p-4 border border-stone-200/80">
+    <div className="flex gap-4 rounded-3xl bg-white p-4 border border-stone-200/70">
       <div className="flex-1 space-y-2.5">
         <div className="skeleton h-4 w-4 rounded" />
         <div className="skeleton h-4 w-3/4 rounded" />
         <div className="skeleton h-3 w-1/2 rounded" />
         <div className="skeleton h-7 w-28 rounded-lg mt-4" />
       </div>
-      <div className="skeleton w-24 h-24 sm:w-28 sm:h-28 rounded-xl" />
+      <div className="skeleton w-28 h-28 sm:w-32 sm:h-32 rounded-2xl" />
     </div>
   );
 }

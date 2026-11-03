@@ -90,13 +90,13 @@ function pill(ctx, text, y, bg, fg) {
   ctx.letterSpacing = '0px';
 }
 
-function drawPoster(canvas, qr, s, template) {
+function drawPoster(canvas, qr, s, template, headline, hint, badge) {
   const ctx = canvas.getContext('2d');
   const brand = /^#[0-9a-f]{6}$/i.test(s.themeColor) ? s.themeColor : '#ef4444';
   const onBrand = readableOn(brand);
   const name = s.restaurantName || 'Our Menu';
   const meta = [s.since, s.tagline].filter(Boolean).join('  •  ').toUpperCase();
-  const initial = name.trim()[0]?.toUpperCase() || 'M';
+  const initial = badge || name.trim()[0]?.toUpperCase() || 'M';
   const qrSize = 640;
   const qx = (W - qrSize) / 2;
 
@@ -117,9 +117,9 @@ function drawPoster(canvas, qr, s, template) {
     ctx.fillStyle = '#ffffff';
     roundRect(ctx, 90, 340, W - 180, 1080, 56);
     ctx.fill();
-    pill(ctx, 'SCAN FOR MENU', 470, brand, onBrand);
+    pill(ctx, headline.toUpperCase(), 470, brand, onBrand);
     drawQR(ctx, qr, qx, 560, qrSize, brand, initial);
-    fitText(ctx, 'Open your phone camera and scan the code', 1335, { size: 34, weight: 600, color: '#78716c', maxWidth: W - 300 });
+    fitText(ctx, hint, 1335, { size: 34, weight: 600, color: '#78716c', maxWidth: W - 300 });
 
     fitText(ctx, footerLine(s), 1530, { size: 36, weight: 600, color: onBrand });
   }
@@ -144,7 +144,7 @@ function drawPoster(canvas, qr, s, template) {
     ctx.stroke();
     drawQR(ctx, qr, qx, 510, qrSize, brand, initial);
 
-    pill(ctx, 'SCAN FOR MENU', 1330, brand, onBrand);
+    pill(ctx, headline.toUpperCase(), 1330, brand, onBrand);
     fitText(ctx, footerLine(s), 1480, { size: 34, weight: 600, color: '#57534e' });
   }
 
@@ -161,11 +161,11 @@ function drawPoster(canvas, qr, s, template) {
 
     fitText(ctx, meta, 170, { size: 34, weight: 700, color: brand === INK ? '#a8a29e' : brand, spacing: 6 });
     fitText(ctx, name, 290, { size: 120, color: '#ffffff' });
-    fitText(ctx, 'Scan for Menu', 400, { size: 56, weight: 700, color: 'rgba(255,255,255,0.75)' });
+    fitText(ctx, headline, 400, { size: 56, weight: 700, color: 'rgba(255,255,255,0.75)' });
 
     drawQR(ctx, qr, qx, 540, qrSize, brand, initial);
 
-    fitText(ctx, 'Open your phone camera and scan the code', 1350, { size: 34, weight: 600, color: 'rgba(255,255,255,0.6)', maxWidth: W - 300 });
+    fitText(ctx, hint, 1350, { size: 34, weight: 600, color: 'rgba(255,255,255,0.6)', maxWidth: W - 300 });
     ctx.fillStyle = brand;
     roundRect(ctx, W / 2 - 60, 1420, 120, 8, 4);
     ctx.fill();
@@ -175,7 +175,7 @@ function drawPoster(canvas, qr, s, template) {
 
 const slug = (s) => (s || 'menu').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-export default function QRPoster({ settings, url }) {
+export default function QRPoster({ settings, url, headline = 'Scan for Menu', hint = 'Open your phone camera and scan the code', badge, fileTag = 'menu-qr' }) {
   const [template, setTemplate] = useState('classic');
   const qrRef = useRef(null);
   const posterRef = useRef(null);
@@ -186,14 +186,14 @@ export default function QRPoster({ settings, url }) {
     Promise.all([document.fonts.load(`800 40px ${FONT}`), document.fonts.load(`600 40px ${FONT}`), document.fonts.load(`700 40px ${FONT}`)])
       .catch(() => {})
       .then(() => {
-        if (!cancelled && qrRef.current && posterRef.current) drawPoster(posterRef.current, qrRef.current, settings, template);
+        if (!cancelled && qrRef.current && posterRef.current) drawPoster(posterRef.current, qrRef.current, settings, template, headline, hint, badge);
       });
     return () => {
       cancelled = true;
     };
-  }, [settings, template, url]);
+  }, [settings, template, url, headline, hint, badge]);
 
-  const fileName = `${slug(settings.restaurantName)}-menu-qr-${template}.png`;
+  const fileName = `${slug(settings.restaurantName)}-${fileTag}-${template}.png`;
 
   const download = () => {
     posterRef.current.toBlob((blob) => {
@@ -208,7 +208,7 @@ export default function QRPoster({ settings, url }) {
   const downloadPlain = () => {
     const a = document.createElement('a');
     a.href = qrRef.current.toDataURL('image/png');
-    a.download = `${slug(settings.restaurantName)}-qr-only.png`;
+    a.download = `${slug(settings.restaurantName)}-${fileTag}-only.png`;
     a.click();
   };
 

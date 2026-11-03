@@ -4,7 +4,7 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
-const FIELDS = ['restaurantName', 'tagline', 'themeColor', 'address', 'phone', 'since', 'menuUrl'];
+const FIELDS = ['restaurantName', 'tagline', 'themeColor', 'address', 'phone', 'since', 'menuUrl', 'googleReviewUrl'];
 
 router.get('/', async (req, res) => {
   res.json(await Setting.getSingleton());

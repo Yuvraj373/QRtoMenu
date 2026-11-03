@@ -41,6 +41,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true, db: mongoose.connectio
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/orders', require('./routes/orders'));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // In production the built frontend is served from here, so the QR code only needs one URL

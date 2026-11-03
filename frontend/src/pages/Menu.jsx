@@ -1,38 +1,119 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import api, { errorMessage } from '../lib/api';
 import { useSettings } from '../lib/SettingsContext';
+import { useCart } from '../lib/cart';
 import { groupByCategory } from '../lib/menu';
+import { FREE_GIFT_MIN, FREE_GIFT_NAME } from '../lib/offer';
+import { getMyOrders, rememberOrder } from '../lib/myOrders';
 import ItemCard, { ItemCardSkeleton } from '../Components/ItemCard';
 import SearchBar from '../Components/SearchBar';
 import VegMark from '../Components/VegMark';
-import { PhoneIcon, PinIcon, RefreshIcon } from '../Components/Icons';
+import CartBar from '../Components/CartBar';
+import SizeSheet from '../Components/SizeSheet';
+import CheckoutSheet from '../Components/CheckoutSheet';
+import { ArrowRightIcon, ExternalIcon, PhoneIcon, PinIcon, ReceiptIcon, RefreshIcon, StarIcon } from '../Components/Icons';
 
-function Hero({ settings }) {
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1600&q=75';
+const GIFT_IMAGE = 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=400&fit=crop&q=80';
+const DEFAULT_REVIEW_URL = 'https://share.google/oZNCrAVVJFrvIMey7';
+
+function Hero({ settings, table }) {
   const meta = [settings.since, settings.tagline].filter(Boolean).join(' • ');
   return (
-    <header className="relative overflow-hidden bg-brand text-white">
-      {/* soft decorative shapes */}
-      <div className="absolute -top-24 -right-16 w-72 h-72 rounded-full bg-white/10" />
-      <div className="absolute -bottom-28 -left-10 w-64 h-64 rounded-full bg-black/10" />
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-8 sm:pt-14 sm:pb-12">
-        {meta && <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/80">{meta}</p>}
-        <h1 className="mt-2 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none">{settings.restaurantName}</h1>
-        {(settings.address || settings.phone) && (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {settings.address && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs sm:text-sm font-semibold">
-                <PinIcon className="w-4 h-4" /> {settings.address}
-              </span>
-            )}
-            {settings.phone && (
-              <a href={`tel:${settings.phone}`} className="inline-flex items-center gap-1.5 rounded-full bg-white text-stone-900 px-3 py-1.5 text-xs sm:text-sm font-bold hover:bg-white/90 transition">
-                <PhoneIcon className="w-4 h-4" /> {settings.phone}
-              </a>
-            )}
-          </div>
-        )}
+    <header className="relative overflow-hidden bg-stone-900 text-white">
+      <img src={HERO_IMAGE} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover scale-105" />
+      <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/70 to-stone-950/30" />
+      <div className="absolute inset-0 bg-gradient-to-r from-brand/50 to-transparent mix-blend-multiply" />
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
+        <div className="flex flex-wrap items-center gap-2">
+          {meta && <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/80">{meta}</p>}
+          {table && <span className="rounded-full bg-white text-stone-900 px-2.5 py-1 text-[11px] font-extrabold">Table {table}</span>}
+        </div>
+        <h1 className="mt-3 text-[2.75rem] sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[0.95] drop-shadow-lg">{settings.restaurantName}</h1>
+        <p className="mt-3 max-w-md text-sm sm:text-base text-white/80">Order from your table, pay on your phone — we&apos;ll bring it right to you.</p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <a
+            href={settings.googleReviewUrl || DEFAULT_REVIEW_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white text-stone-900 px-3.5 py-2 text-xs sm:text-sm font-bold hover:bg-white/90 transition"
+          >
+            <StarIcon className="w-4 h-4 text-amber-400" /> Rate us on Google
+          </a>
+          {settings.address && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3.5 py-2 text-xs sm:text-sm font-semibold">
+              <PinIcon className="w-4 h-4" /> {settings.address}
+            </span>
+          )}
+          {settings.phone && (
+            <a href={`tel:${settings.phone}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3.5 py-2 text-xs sm:text-sm font-semibold hover:bg-white/25 transition">
+              <PhoneIcon className="w-4 h-4" /> {settings.phone}
+            </a>
+          )}
+        </div>
       </div>
     </header>
+  );
+}
+
+function OfferBanner({ giftItem }) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-300 via-amber-200 to-orange-200 p-4 sm:p-5 flex items-center gap-4 shadow-xl shadow-amber-900/10">
+      <div className="absolute -left-8 -bottom-12 w-36 h-36 rounded-full bg-white/30" />
+      <div className="relative flex-1 min-w-0">
+        <span className="inline-block rounded-full bg-stone-900 text-amber-300 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider">Today&apos;s offer</span>
+        <p className="mt-2 text-lg sm:text-2xl font-extrabold text-stone-900 leading-tight">FREE {FREE_GIFT_NAME} 🎁</p>
+        <p className="text-xs sm:text-sm font-semibold text-stone-700">On every order of ₹{FREE_GIFT_MIN} or more — added automatically</p>
+      </div>
+      <img src={giftItem?.image || GIFT_IMAGE} alt={FREE_GIFT_NAME} className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover rotate-3 ring-4 ring-white shadow-lg" />
+    </div>
+  );
+}
+
+function ActiveOrder() {
+  const [order, setOrder] = useState(null);
+  useEffect(() => {
+    const [latest] = getMyOrders();
+    if (!latest) return;
+    api
+      .get(`/orders/track/${latest.trackingId}`)
+      .then((res) => ['new', 'preparing', 'ready'].includes(res.data.status) && setOrder(res.data))
+      .catch(() => {});
+  }, []);
+  if (!order) return null;
+  const label = { new: 'Order placed', preparing: 'Being prepared 👨‍🍳', ready: 'Ready — on its way 🛎️' }[order.status];
+  return (
+    <Link to={`/order/${order.trackingId}`} className="flex items-center gap-3 rounded-2xl bg-stone-900 text-white p-3.5 pr-4 hover:bg-stone-800 transition animate-fade-up">
+      <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand"><ReceiptIcon className="w-5 h-5" /></span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-xs text-white/60 font-semibold">Your order #{order.number}</span>
+        <span className="block font-bold">{label}</span>
+      </span>
+      <span className="inline-flex items-center gap-1 text-sm font-bold">Track <ArrowRightIcon className="w-4 h-4" /></span>
+    </Link>
+  );
+}
+
+function ReviewCard({ url }) {
+  return (
+    <section className="mt-12 rounded-3xl bg-white border border-stone-200 p-5 sm:p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+      <div className="flex-1">
+        <div className="flex justify-center sm:justify-start gap-1 text-amber-400">
+          {[1, 2, 3, 4, 5].map((n) => <StarIcon key={n} className="w-6 h-6" />)}
+        </div>
+        <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Loved your food?</h2>
+        <p className="mt-1 text-sm text-stone-500">Tell others on Google — it really helps a small restaurant like ours.</p>
+        <a href={url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 h-12 px-5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition">
+          Write a Google review <ExternalIcon className="w-4 h-4" />
+        </a>
+      </div>
+      <div className="shrink-0 rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200 text-center">
+        <QRCodeSVG value={url} size={120} level="M" marginSize={0} />
+        <p className="mt-2 text-[11px] font-bold text-stone-500">Scan to review</p>
+      </div>
+    </section>
   );
 }
 
@@ -53,6 +134,13 @@ function VegToggle({ value, onChange }) {
 
 export default function Menu() {
   const { settings } = useSettings();
+  const cart = useCart();
+  const { syncWith } = cart;
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const table = params.get('table')?.slice(0, 20) || '';
+  const [sizeItem, setSizeItem] = useState(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
@@ -67,15 +155,25 @@ export default function Menu() {
       .get('/items')
       .then((res) => {
         setItems(res.data);
+        syncWith(res.data);
         setStatus('ready');
       })
       .catch((err) => {
         setError(errorMessage(err));
         setStatus('error');
       });
-  }, []);
+  }, [syncWith]);
 
   useEffect(load, [load]);
+
+  const giftItem = useMemo(() => items.find((i) => i.name.toLowerCase() === FREE_GIFT_NAME.toLowerCase()), [items]);
+  const reviewUrl = settings.googleReviewUrl || DEFAULT_REVIEW_URL;
+
+  const placed = (order) => {
+    rememberOrder(order);
+    setCheckoutOpen(false);
+    navigate(`/order/${order.trackingId}`);
+  };
 
   const sections = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -121,11 +219,16 @@ export default function Menu() {
   };
 
   return (
-    <div className="min-h-dvh bg-stone-50">
-      <Hero settings={settings} />
+    <div className={`min-h-dvh bg-stone-50 ${cart.count ? 'pb-40' : ''}`}>
+      <Hero settings={settings} table={table} />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 -mt-12 sm:-mt-16 space-y-3">
+        <OfferBanner giftItem={giftItem} />
+        <ActiveOrder />
+      </div>
 
       {/* Sticky search + category bar */}
-      <div className="sticky top-0 z-20 bg-stone-50/90 backdrop-blur-md border-b border-stone-200/70">
+      <div className="sticky top-0 z-20 mt-4 bg-stone-50/90 backdrop-blur-md border-b border-stone-200/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex gap-2">
           <SearchBar value={search} onChange={setSearch} className="flex-1" />
           <VegToggle value={vegOnly} onChange={setVegOnly} />
@@ -219,13 +322,21 @@ export default function Menu() {
                 <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
                   {s.items.map((item) => (
                     <div key={item._id} className="animate-fade-up">
-                      <ItemCard item={item} />
+                      <ItemCard
+                        item={item}
+                        qty={cart.qtyOf(item._id)}
+                        onAdd={() => (item.priceL != null ? setSizeItem(item) : cart.add(item))}
+                        onInc={() => cart.inc(cart.keyOf(item._id, null))}
+                        onDec={() => cart.dec(cart.keyOf(item._id, null))}
+                      />
                     </div>
                   ))}
                 </div>
               </section>
             ))}
           </div>
+
+          {status === 'ready' && <ReviewCard url={reviewUrl} />}
         </main>
       </div>
 
@@ -235,8 +346,13 @@ export default function Menu() {
             <p className="font-extrabold text-stone-900">{settings.restaurantName}</p>
             {settings.address && <p className="mt-0.5">{settings.address}</p>}
           </div>
+          <p className="text-xs">Payments on this site are in demo mode.</p>
         </div>
       </footer>
+
+      {!checkoutOpen && !sizeItem && <CartBar onOpen={() => setCheckoutOpen(true)} />}
+      <SizeSheet item={sizeItem} onClose={() => setSizeItem(null)} />
+      <CheckoutSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)} onPlaced={placed} giftItem={giftItem} defaultTable={table} />
     </div>
   );
 }

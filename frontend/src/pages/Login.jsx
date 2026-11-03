@@ -12,7 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  if (auth.token) return <Navigate to="/admin" replace />;
+  if (auth.token) return <Navigate to="/orders" replace />;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,7 +21,7 @@ export default function Login() {
     try {
       const res = await api.post('/auth/login', { password });
       auth.set(res.data.token);
-      navigate('/admin', { replace: true });
+      navigate('/orders', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
       setLoading(false);

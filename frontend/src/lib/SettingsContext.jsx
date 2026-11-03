@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   address: '',
   phone: '',
   since: '',
+  googleReviewUrl: 'https://share.google/oZNCrAVVJFrvIMey7',
 };
 
 const SettingsContext = createContext(null);

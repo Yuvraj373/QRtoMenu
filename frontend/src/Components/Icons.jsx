@@ -61,3 +61,36 @@ export function DownloadIcon({ className }) {
 export function RefreshIcon({ className }) {
   return <Svg className={className}><><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></></Svg>;
 }
+export function BagIcon({ className }) {
+  return <Svg className={className}><><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18M16 10a4 4 0 0 1-8 0" /></></Svg>;
+}
+export function ArrowRightIcon({ className }) {
+  return <Svg className={className}><path d="M5 12h14M13 6l6 6-6 6" /></Svg>;
+}
+export function ArrowLeftIcon({ className }) {
+  return <Svg className={className}><path d="M19 12H5M11 18l-6-6 6-6" /></Svg>;
+}
+export function MinusIcon({ className }) {
+  return <Svg className={className}><path d="M5 12h14" /></Svg>;
+}
+export function BellIcon({ className }) {
+  return <Svg className={className}><><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" /></></Svg>;
+}
+export function BellOffIcon({ className }) {
+  return <Svg className={className}><><path d="M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20" /></></Svg>;
+}
+export function ClockIcon({ className }) {
+  return <Svg className={className}><><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></></Svg>;
+}
+export function CardIcon({ className }) {
+  return <Svg className={className}><><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></></Svg>;
+}
+export function MobileIcon({ className }) {
+  return <Svg className={className}><><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" /></></Svg>;
+}
+export function GiftIcon({ className }) {
+  return <Svg className={className}><><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" /></></Svg>;
+}
+export function ReceiptIcon({ className }) {
+  return <Svg className={className}><><path d="M4 2v20l3-2 2 2 3-2 3 2 2-2 3 2V2l-3 2-2-2-3 2-3-2-2 2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></></Svg>;
+}

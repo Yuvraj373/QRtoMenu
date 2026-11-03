@@ -2,9 +2,11 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { auth } from '../lib/api';
 import { LOGIN_PATH } from '../lib/config';
 import { useSettings } from '../lib/SettingsContext';
-import { ExternalIcon, ListIcon, LogoutIcon, SettingsIcon } from './Icons';
+import { useOrders } from '../lib/orders';
+import { ExternalIcon, ListIcon, LogoutIcon, ReceiptIcon, SettingsIcon } from './Icons';
 
 const tabs = [
+  { to: '/orders', label: 'Orders', Icon: ReceiptIcon },
   { to: '/admin', label: 'Menu Items', Icon: ListIcon },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
 ];
@@ -12,6 +14,12 @@ const tabs = [
 export default function AdminLayout({ title, subtitle, actions, children }) {
   const navigate = useNavigate();
   const { settings } = useSettings();
+  const { newCount } = useOrders();
+
+  const badge = (to) =>
+    to === '/orders' && newCount > 0 ? (
+      <span className="absolute -top-2 -right-3 md:static md:ml-0.5 min-w-5 h-5 px-1 grid place-items-center rounded-full bg-red-500 text-white text-[10px] font-extrabold ring-2 ring-white md:ring-0">{newCount}</span>
+    ) : null;
 
   const logout = () => {
     auth.clear();
@@ -22,7 +30,7 @@ export default function AdminLayout({ title, subtitle, actions, children }) {
     <div className="min-h-dvh bg-stone-50 pb-24 md:pb-10">
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <Link to="/admin" className="flex items-center gap-2.5 min-w-0">
+          <Link to="/orders" className="flex items-center gap-2.5 min-w-0">
             <span className="grid place-items-center w-9 h-9 rounded-xl bg-brand text-white font-extrabold text-lg shrink-0">
               {settings.restaurantName?.[0]?.toUpperCase() || 'M'}
             </span>
@@ -42,6 +50,7 @@ export default function AdminLayout({ title, subtitle, actions, children }) {
                 }
               >
                 <Icon className="w-4 h-4" /> {label}
+                {badge(to)}
               </NavLink>
             ))}
           </nav>
@@ -69,14 +78,18 @@ export default function AdminLayout({ title, subtitle, actions, children }) {
       </main>
 
       {/* Mobile bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-stone-200 grid grid-cols-2 pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-stone-200 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
         {tabs.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) => `flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold transition ${isActive ? 'text-brand' : 'text-stone-500'}`}
           >
-            <Icon className="w-5 h-5" /> {label}
+            <span className="relative">
+              <Icon className="w-5 h-5" />
+              {badge(to)}
+            </span>
+            {label}
           </NavLink>
         ))}
       </nav>

@@ -54,7 +54,7 @@ export default function Settings() {
   useEffect(() => () => document.documentElement.style.setProperty('--brand', saved.current.themeColor), []);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const dirty = ['restaurantName', 'tagline', 'since', 'address', 'phone', 'themeColor', 'menuUrl'].some((k) => (form[k] ?? '') !== (settings[k] ?? ''));
+  const dirty = ['restaurantName', 'tagline', 'since', 'address', 'phone', 'themeColor', 'menuUrl', 'googleReviewUrl'].some((k) => (form[k] ?? '') !== (settings[k] ?? ''));
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -129,6 +129,21 @@ export default function Settings() {
               <input type="url" inputMode="url" value={form.menuUrl ?? ''} onChange={set('menuUrl')} className={inputCls} placeholder={PUBLIC_URL} />
             </Field>
             <p className="mt-2 text-xs text-stone-500">If left empty, the current address is used: <span className="font-semibold text-stone-700 break-all">{PUBLIC_URL}</span></p>
+            <p className="mt-2 text-xs text-stone-500">
+              Tip: add <span className="font-mono font-semibold text-stone-700">?table=5</span> to the end of the link to print a QR for each table — the table number is then filled in automatically when customers order.
+            </p>
+          </Card>
+
+          <Card title="Google review" description="After paying, customers are asked to rate you and open this link to leave a Google review">
+            <Field label="Google review link">
+              <input type="url" inputMode="url" value={form.googleReviewUrl ?? ''} onChange={set('googleReviewUrl')} className={inputCls} placeholder="https://g.page/r/…/review" />
+            </Field>
+            <p className="mt-2 text-xs text-stone-500">
+              Find it in Google Business Profile → <span className="font-semibold">Ask for reviews</span>.{' '}
+              {form.googleReviewUrl && (
+                <a href={form.googleReviewUrl} target="_blank" rel="noreferrer" className="font-bold text-brand hover:underline">Test the link ↗</a>
+              )}
+            </p>
           </Card>
 
           <div className={`${dirty ? 'sticky bottom-20 md:bottom-4 z-20 shadow-lg' : ''} flex flex-col-reverse sm:flex-row gap-3 sm:justify-end bg-white/90 backdrop-blur border border-stone-200 rounded-2xl p-3`}>
@@ -168,6 +183,15 @@ export default function Settings() {
             <QRPoster settings={form} url={menuUrl} />
             <p className="mt-3 text-center text-[11px] text-stone-400">Print it and place it on your tables — customers scan it to view the menu.</p>
           </section>
+
+          {form.googleReviewUrl && (
+            <section className="bg-white rounded-2xl border border-stone-200 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Google review QR poster</p>
+              <p className="mt-1 mb-4 text-[11px] text-stone-500 break-all">QR opens: <span className="font-semibold text-stone-700">{form.googleReviewUrl}</span></p>
+              <QRPoster settings={form} url={form.googleReviewUrl} headline="Rate us on Google" hint="Scan and leave us a ★★★★★ review" badge="★" fileTag="google-review-qr" />
+              <p className="mt-3 text-center text-[11px] text-stone-400">Place it at the billing counter or exit.</p>
+            </section>
+          )}
         </aside>
       </form>
     </AdminLayout>
